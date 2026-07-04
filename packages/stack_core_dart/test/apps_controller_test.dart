@@ -167,6 +167,98 @@ void main() {
     expect(state.error, isA<StackError_Network>());
   });
 
+  group('Apps permissions scoping', () {
+    /// Re-registers the account with the given allowlist scope, replacing the
+    /// default unrestricted record from setUp.
+    Future<void> scopeAccount(List<String>? appsBundles) => accounts.upsert(
+          AccountRecord(
+            id: accountId,
+            kind: ServiceKind.appStoreConnect,
+            label: 'Acme',
+            appsBundles: appsBundles,
+          ),
+        );
+
+    test('non-empty scope: sync returns only allowed apps', () async {
+      await scopeAccount(['com.one']);
+      when(() => gateway.syncApps(any(), persist: any(named: 'persist')))
+          .thenAnswer((_) async => const [
+                AppInfo(id: '1', name: 'One', bundleId: 'com.one'),
+                AppInfo(id: '2', name: 'Two', bundleId: 'com.two'),
+              ]);
+
+      final container = makeContainer();
+      final controller = appsControllerProvider(accountId);
+
+      await container.read(controller.future);
+      await Future<void>.delayed(Duration.zero);
+      await container.pump();
+
+      final refreshed = container.read(controller).value!;
+      expect(refreshed.map((a) => a.bundleId), ['com.one']);
+    });
+
+    test('non-empty scope: cache read is filtered to allowed apps', () async {
+      await scopeAccount(['com.one']);
+      await blobs.save(kAppBlobType, '1',
+          _appBlob(id: '1', name: 'One', bundleId: 'com.one', accountId: accountId));
+      await blobs.save(kAppBlobType, '2',
+          _appBlob(id: '2', name: 'Two', bundleId: 'com.two', accountId: accountId));
+      when(() => gateway.syncApps(any(), persist: any(named: 'persist')))
+          .thenAnswer((_) async => const [
+                AppInfo(id: '1', name: 'One', bundleId: 'com.one'),
+                AppInfo(id: '2', name: 'Two', bundleId: 'com.two'),
+              ]);
+
+      final container = makeContainer();
+      final controller = appsControllerProvider(accountId);
+
+      final cached = await container.read(controller.future);
+      expect(cached.map((a) => a.bundleId), ['com.one']);
+    });
+
+    test('null scope: all apps are returned (backward-compat contract)',
+        () async {
+      // Default setUp() record already has appsBundles == null; assert it here.
+      expect((await accounts.all()).single.appsBundles, isNull);
+      when(() => gateway.syncApps(any(), persist: any(named: 'persist')))
+          .thenAnswer((_) async => const [
+                AppInfo(id: '1', name: 'One', bundleId: 'com.one'),
+                AppInfo(id: '2', name: 'Two', bundleId: 'com.two'),
+              ]);
+
+      final container = makeContainer();
+      final controller = appsControllerProvider(accountId);
+
+      await container.read(controller.future);
+      await Future<void>.delayed(Duration.zero);
+      await container.pump();
+
+      final refreshed = container.read(controller).value!;
+      expect(refreshed.map((a) => a.bundleId), ['com.one', 'com.two']);
+    });
+
+    test('empty scope: all apps are returned (backward-compat contract)',
+        () async {
+      await scopeAccount(const []);
+      when(() => gateway.syncApps(any(), persist: any(named: 'persist')))
+          .thenAnswer((_) async => const [
+                AppInfo(id: '1', name: 'One', bundleId: 'com.one'),
+                AppInfo(id: '2', name: 'Two', bundleId: 'com.two'),
+              ]);
+
+      final container = makeContainer();
+      final controller = appsControllerProvider(accountId);
+
+      await container.read(controller.future);
+      await Future<void>.delayed(Duration.zero);
+      await container.pump();
+
+      final refreshed = container.read(controller).value!;
+      expect(refreshed.map((a) => a.bundleId), ['com.one', 'com.two']);
+    });
+  });
+
   test('refresh() re-syncs and re-emits', () async {
     var calls = 0;
     when(() => gateway.syncApps(any(), persist: any(named: 'persist')))

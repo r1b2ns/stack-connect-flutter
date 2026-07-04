@@ -31,6 +31,7 @@ class AccountsController extends AsyncNotifier<List<AccountRecord>> {
     required String label,
     required Map<String, String> secrets,
     String? accountId,
+    List<String>? appsBundles,
   }) async {
     final gateway = ref.read(coreGatewayProvider);
     final store = ref.read(accountsStoreProvider);
@@ -54,7 +55,14 @@ class AccountsController extends AsyncNotifier<List<AccountRecord>> {
       for (final entry in secrets.entries) {
         await secretStore.setSecret(id, entry.key, entry.value);
       }
-      await store.upsert(AccountRecord(id: id, kind: kind, label: label));
+      await store.upsert(
+        AccountRecord(
+          id: id,
+          kind: kind,
+          label: label,
+          appsBundles: appsBundles,
+        ),
+      );
 
       return store.all();
     });

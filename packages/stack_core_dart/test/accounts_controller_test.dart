@@ -88,6 +88,57 @@ void main() {
     verify(() => gateway.validate(provider)).called(1);
   });
 
+  test('addAccount persists the supplied appsBundles scope', () async {
+    when(() => gateway.connect(
+          kind: any(named: 'kind'),
+          accountId: any(named: 'accountId'),
+          credentials: any(named: 'credentials'),
+        )).thenAnswer((_) async => provider);
+    when(() => gateway.validate(any())).thenAnswer((_) async {});
+
+    final container = makeContainer();
+    await container.read(accountsControllerProvider.future);
+
+    await container.read(accountsControllerProvider.notifier).addAccount(
+      kind: ServiceKind.appStoreConnect,
+      label: 'Scoped',
+      secrets: const {'issuerId': 'abc-123'},
+      accountId: 'acct-scoped',
+      appsBundles: const ['com.a', 'com.b'],
+    );
+
+    final persisted = await accounts.all();
+    expect(persisted.single.appsBundles, ['com.a', 'com.b']);
+    // A scoped account restricts visibility to the listed bundle ids.
+    expect(persisted.single.allowsApp('com.a'), isTrue);
+    expect(persisted.single.allowsApp('com.other'), isFalse);
+  });
+
+  test('addAccount without appsBundles yields an unrestricted account',
+      () async {
+    when(() => gateway.connect(
+          kind: any(named: 'kind'),
+          accountId: any(named: 'accountId'),
+          credentials: any(named: 'credentials'),
+        )).thenAnswer((_) async => provider);
+    when(() => gateway.validate(any())).thenAnswer((_) async {});
+
+    final container = makeContainer();
+    await container.read(accountsControllerProvider.future);
+
+    await container.read(accountsControllerProvider.notifier).addAccount(
+      kind: ServiceKind.appStoreConnect,
+      label: 'Unscoped',
+      secrets: const {'issuerId': 'abc-123'},
+      accountId: 'acct-unscoped',
+    );
+
+    final persisted = await accounts.all();
+    // Null scope ⇒ unrestricted: every app is allowed.
+    expect(persisted.single.appsBundles, isNull);
+    expect(persisted.single.allowsApp('com.anything'), isTrue);
+  });
+
   test('validate failure surfaces the error and does NOT persist', () async {
     when(() => gateway.connect(
           kind: any(named: 'kind'),

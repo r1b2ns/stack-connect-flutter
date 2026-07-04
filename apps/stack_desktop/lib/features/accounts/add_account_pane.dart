@@ -228,6 +228,7 @@ class _AddAccountDialogState extends ConsumerState<AddAccountDialog> {
             kind: _kind,
             label: export.name,
             secrets: export.credentials,
+            appsBundles: export.appsBundles,
           );
       if (mounted) Navigator.of(context).pop();
     } catch (error) {

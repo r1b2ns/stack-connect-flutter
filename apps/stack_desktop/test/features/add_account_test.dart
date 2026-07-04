@@ -241,6 +241,7 @@ void main() {
             'issuerId': 'ISSUER123',
             'privateKeyP8': 'PRIVATE-KEY',
           },
+          appsBundles: ['com.a'],
         ),
       );
       FileSelectorPlatform.instance = _FakeFileSelector(
@@ -272,6 +273,11 @@ void main() {
       expect(records, hasLength(1));
       expect(records.single.label, 'Imported Co');
       expect(records.single.kind, ServiceKind.appStoreConnect);
+      // The export's per-app scope flows through addAccount onto the record,
+      // so the imported account is restricted to the listed bundle id.
+      expect(records.single.appsBundles, ['com.a']);
+      expect(records.single.allowsApp('com.a'), isTrue);
+      expect(records.single.allowsApp('com.other'), isFalse);
       expect(find.widgetWithText(FilledButton, 'Import'), findsNothing);
     },
   );

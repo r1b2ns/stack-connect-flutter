@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../gateway/core_gateway.dart';
 import 'package:stack_core_rust/stack_core_rust.dart';
+import '../stores/accounts_store.dart';
 import '../stores/blob_cache.dart';
 import '../stores/store_providers.dart';
 import 'connected_provider.dart';
@@ -48,7 +49,33 @@ class AppsController extends FamilyAsyncNotifier<List<AppInfo>, String> {
       if (app.accountId != accountId) continue;
       apps.add(app.info);
     }
-    return apps;
+    return _applyAppsPermissions(accountId, apps);
+  }
+
+  /// Filters [apps] down to those the owning account's "Apps permissions"
+  /// allowlist permits.
+  ///
+  /// Backward-compat contract (mirrors iOS): a null or empty allowlist means
+  /// unrestricted, so all apps pass. If no account record is found for
+  /// [accountId], the account is treated as unrestricted. Dormant until the
+  /// core populates [AccountRecord.appsBundles].
+  Future<List<AppInfo>> _applyAppsPermissions(
+    String accountId,
+    List<AppInfo> apps,
+  ) async {
+    final records = await ref.read(accountsStoreProvider).all();
+    AccountRecord? record;
+    for (final r in records) {
+      if (r.id == accountId) {
+        record = r;
+        break;
+      }
+    }
+    if (record == null) return apps;
+    final owner = record;
+    return apps
+        .where((app) => owner.allowsApp(app.bundleId))
+        .toList(growable: false);
   }
 
   /// Syncs via the connected provider, persisting each blob to the cache, then
@@ -61,10 +88,14 @@ class AppsController extends FamilyAsyncNotifier<List<AppInfo>, String> {
       final provider =
           await ref.read(connectedProviderProvider(accountId).future);
       final service = gateway.makeSyncService(provider, accountId);
-      return gateway.syncApps(
+      final fetched = await gateway.syncApps(
         service,
         persist: (typeName, id, json) => cache.save(typeName, id, json),
       );
+      // The shared blob cache still persists every fetched blob (the persist
+      // callback above ran for all of them); scoping is applied per-account
+      // on emit so a restricted account never surfaces apps it can't see.
+      return _applyAppsPermissions(accountId, fetched);
     });
   }
 }
