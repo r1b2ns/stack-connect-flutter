@@ -2,6 +2,7 @@
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+build/
 
 # Native libraries built from the Rust core
 # (rebuilt via ../stack-connect-core/build/build-android.sh; not source).

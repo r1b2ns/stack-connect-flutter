@@ -1,0 +1,48 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "stack_mobile (debug)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/stack_mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "stack_mobile (profile)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/stack_mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "stack_desktop · macOS (debug)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/stack_desktop",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "stack_desktop · macOS (profile)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/stack_desktop",
+      "program": "lib/main.dart",
+      "deviceId": "macos",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "stack_desktop · Windows (debug)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "apps/stack_desktop",
+      "program": "lib/main.dart",
+      "deviceId": "windows",
+      "flutterMode": "debug"
+    }
+  ]
+}

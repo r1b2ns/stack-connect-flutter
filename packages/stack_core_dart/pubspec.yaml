@@ -28,7 +28,7 @@ dependencies:
   # into the sibling stack-connect-core checkout. This package re-exports its
   # surface so app code keeps a single `package:stack_core_dart/...` import.
   stack_core_rust:
-    path: ../../../../stack-connect-core/bindings/dart/stack_core_rust
+    path: ../../../stack-connect-core/bindings/dart/stack_core_rust
   # Pinned to match the Rust runtime crate `flutter_rust_bridge` and the
   # installed `flutter_rust_bridge_codegen` (all 2.12.0). Still a direct dep:
   # hand-written controllers/gateway reference FRB types at runtime.

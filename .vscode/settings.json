@@ -1,0 +1,9 @@
+{
+  "dart.flutterSdkPath": null,
+  "dart.previewFlutterUiGuides": true,
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.rulers": [80]
+  }
+}

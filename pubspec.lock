@@ -820,7 +820,7 @@ packages:
   stack_core_rust:
     dependency: transitive
     description:
-      path: "../../stack-connect-core/bindings/dart/stack_core_rust"
+      path: "../stack-connect-core/bindings/dart/stack_core_rust"
       relative: true
     source: path
     version: "0.0.1"

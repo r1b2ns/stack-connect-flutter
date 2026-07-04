@@ -25,7 +25,8 @@
 #
 # Source path resolution (first match wins):
 #   1. $STACK_CORE_DYLIB                       (explicit override, absolute path)
-#   2. sibling core repo's target/release dir  (default when repos are siblings)
+#   2. sibling core repo's target/aarch64-apple-darwin/release dir
+#      (default when repos are siblings; the frb-enabled build output)
 #
 # Override example (when the two repos are NOT checked out as siblings):
 #   STACK_CORE_DYLIB=/abs/path/libstack_core.dylib flutter build macos
@@ -45,16 +46,23 @@ if [[ -n "${STACK_CORE_DYLIB:-}" ]]; then
   SOURCE_DYLIB="${STACK_CORE_DYLIB}"
 else
   # SRCROOT == apps/stack_desktop/macos. The core repo is a sibling of the
-  # stack-connect repo: macos -> stack_desktop -> apps -> flutter ->
-  # stack-connect -> (parent) -> stack-connect-core (five levels up).
-  SOURCE_DYLIB="${SRCROOT}/../../../../../stack-connect-core/target/release/${DYLIB_NAME}"
+  # flutter monorepo root: macos -> stack_desktop -> apps ->
+  # stack-connect-flutter -> (parent) -> stack-connect-core (four levels up).
+  #
+  # Read the TRIPLE-qualified output dir (target/aarch64-apple-darwin/release),
+  # NOT the host default (target/release). That's where the core's authoritative
+  # FRB build script (build/build-desktop.sh macos) emits the frb-enabled dylib,
+  # matching the Windows runner's CMake path (target/x86_64-pc-windows-msvc/
+  # release/stack_core.dll). The plain host build (target/release) is the UniFFI
+  # dylib built WITHOUT --features frb, so it lacks the frb_* symbols FRB needs.
+  SOURCE_DYLIB="${SRCROOT}/../../../../stack-connect-core/target/aarch64-apple-darwin/release/${DYLIB_NAME}"
 fi
 
 if [[ ! -f "${SOURCE_DYLIB}" ]]; then
   echo "error: ${DYLIB_NAME} not found at: ${SOURCE_DYLIB}" >&2
-  echo "error: build it in the core repo with" >&2
-  echo "error:   cargo build --release -p stack_core --features frb" >&2
-  echo "error: (or build/build-desktop.sh aarch64-apple-darwin), or set" >&2
+  echo "error: build the frb-enabled dylib in the core repo with" >&2
+  echo "error:   build/build-desktop.sh macos" >&2
+  echo "error: (outputs target/aarch64-apple-darwin/release/${DYLIB_NAME}), or set" >&2
   echo "error:   STACK_CORE_DYLIB=<abs path> when the repos are not siblings." >&2
   exit 1
 fi
